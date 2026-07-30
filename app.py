@@ -1,6 +1,7 @@
 import hashlib
 import os
 import streamlit as st
+from google import genai
 
 # Configuración de la página
 st.set_page_config(
@@ -61,7 +62,6 @@ if not st.session_state.pago_verificado:
   )
 
   if comprobante_file is not None:
-    # Generar hash del archivo para control de duplicados
     file_bytes = comprobante_file.read()
     file_hash = hashlib.sha256(file_bytes).hexdigest()
 
@@ -72,7 +72,6 @@ if not st.session_state.pago_verificado:
       )
     else:
       if st.button("Verificar Pago y Liberar Preguntas"):
-        # Guardar hash para quemar el comprobante
         save_hash(file_hash)
         st.session_state.pago_verificado = True
         st.success(
@@ -81,7 +80,7 @@ if not st.session_state.pago_verificado:
         st.rerun()
 
 else:
-  # --- SECCIÓN DE CHAT Y AGENTES ---
+  # --- SECCIÓN DE CHAT Y AGENTES CON INTELIGENCIA ARTIFICIAL ---
   st.success(
       f"💬 Tienes **{st.session_state.preguntas_restantes} preguntas"
       " restantes** disponibles."
@@ -99,7 +98,7 @@ else:
 
   if pregunta_usuario:
     if st.session_state.preguntas_restantes > 0:
-      # Agregar mensaje del usuario
+      # Agregar mensaje del usuario al historial
       st.session_state.mensajes.append(
           {"role": "user", "content": pregunta_usuario}
       )
@@ -109,26 +108,40 @@ else:
       # Disminuir contador
       st.session_state.preguntas_restantes -= 1
 
-      # Simulación de respuesta del Orquestador y Agentes Especializados
+      # Generar respuesta dinámica usando Google Gemini
       with st.chat_message("assistant"):
         with st.spinner(
-            "El Agente Orquestador está analizando tu caso y derivándolo a la"
-            " rama judicial correcta..."
+            "El Agente Orquestador está analizando tu caso bajo el marco de la"
+            " Constitución de Colombia..."
         ):
+          try:
+            # Inicializar cliente de Gemini utilizando los secretos de Streamlit
+            client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-          # Lógica de Agentes (Aquí integrarías la API de OpenAI / Claude con prompts por rama)
-          respuesta_ia = (
-              f"**[Agente Orquestador -> Rama Judicial Asignada]**\n\n"
-              f"Hemos analizado tu caso bajo los preceptos de la Constitución"
-              f" Política de Colombia.\n\n"
-              f"1. **Rama asignada:** Derecho Administrativo / Constitucional"
-              f" (Tutela).\n2. **Análisis del caso:** Con base en lo que"
-              f" relata, se vulnera el derecho fundamental...\n3. **Pasos"
-              f" exactos a seguir:**\n   - Radicar memorial ante...\n   - Adjuntar"
-              f" pruebas de...\n4. **Borrador de Documento:** Se genera la"
-              f" estructura base para el trámite...\n\n*(Preguntas restantes:"
-              f" {st.session_state.preguntas_restantes})*"
-          )
+            prompt_sistema = (
+                "Eres un Agente Orquestador y Abogado Expertos en Derecho y"
+                " Constitución Política de Colombia. Analiza de forma"
+                " profesional, empática y detallada el caso que expone el"
+                " usuario. Estructura tu respuesta indicando: 1. Rama"
+                " judicial asignada (Constitucional/Tutela, Penal, Laboral,"
+                " Civil, Administrativo, etc.). 2. Análisis jurídico del caso"
+                " basándote en la ley colombiana. 3. Pasos exactos y"
+                " recomendaciones a seguir. 4. Borrador o estructura base si"
+                " aplica."
+            )
+
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=[prompt_sistema, pregunta_usuario],
+            )
+            respuesta_ia = response.text
+
+          except Exception as e:
+            respuesta_ia = (
+                "⚠️ Ocurrió un error al conectar con el servicio de Inteligencia"
+                f" Artificial. Asegúrate de configurar tu `GEMINI_API_KEY` en"
+                f" los Secrets de Streamlit. (Detalle: {e})"
+            )
 
         st.markdown(respuesta_ia)
         st.session_state.mensajes.append(
