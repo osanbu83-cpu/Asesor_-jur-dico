@@ -47,7 +47,7 @@ if not st.session_state.pago_verificado:
 
   st.markdown(
       """
-        * **Número Nequi:** `304 311 233`
+        * **Número Nequi:** `304 3711 233`
         * **A nombre de:** Blanca Mirella Gómez
         """
   )
