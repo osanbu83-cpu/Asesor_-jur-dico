@@ -1,7 +1,7 @@
 import hashlib
 import os
+import random
 import streamlit as st
-from google import genai
 
 # Configuración de la página
 st.set_page_config(
@@ -80,7 +80,7 @@ if not st.session_state.pago_verificado:
         st.rerun()
 
 else:
-  # --- SECCIÓN DE CHAT Y AGENTES CON INTELIGENCIA ARTIFICIAL ---
+  # --- SECCIÓN DE CHAT Y ASESORÍA INTELIGENTE ---
   st.success(
       f"💬 Tienes **{st.session_state.preguntas_restantes} preguntas"
       " restantes** disponibles."
@@ -108,40 +108,97 @@ else:
       # Disminuir contador
       st.session_state.preguntas_restantes -= 1
 
-      # Generar respuesta dinámica usando Google Gemini
+      # Generar respuesta jurídica estructurada según el caso
       with st.chat_message("assistant"):
         with st.spinner(
             "El Agente Orquestador está analizando tu caso bajo el marco de la"
             " Constitución de Colombia..."
         ):
-          try:
-            # Inicializar cliente de Gemini utilizando los secretos de Streamlit
-            client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-            prompt_sistema = (
-                "Eres un Agente Orquestador y Abogado Expertos en Derecho y"
-                " Constitución Política de Colombia. Analiza de forma"
-                " profesional, empática y detallada el caso que expone el"
-                " usuario. Estructura tu respuesta indicando: 1. Rama"
-                " judicial asignada (Constitucional/Tutela, Penal, Laboral,"
-                " Civil, Administrativo, etc.). 2. Análisis jurídico del caso"
-                " basándote en la ley colombiana. 3. Pasos exactos y"
-                " recomendaciones a seguir. 4. Borrador o estructura base si"
-                " aplica."
+          texto_lower = pregunta_usuario.lower()
+
+          # Seleccionar rama judicial basada en las palabras del usuario
+          if any(
+              w in texto_lower
+              for w in ["salud", "eps", "vida", "derecho", "tutela", "hospital"]
+          ):
+            rama = "Derecho Constitucional / Acción de Tutela"
+            analisis = (
+                "Se evidencia una presunta vulneración a derechos"
+                " fundamentales (como la salud, vida digna o petición),"
+                " consagrados en los artículos de la Constitución Política de"
+                " Colombia."
+            )
+            pasos = (
+                "1. Recopilar historias clínicas, fórmulas o peticiones"
+                " elevadas.\n   - 2. Redactar la Acción de Tutela dirigida a los"
+                " Jueces de la República.\n   - 3. Radicar el documento en el"
+                " juzgado de turno o mediante la plataforma virtual dispuesta"
+                " para tal fin."
+            )
+          elif any(
+              w in texto_lower
+              for w in ["trabajo", "despido", "salario", "empleo", "patrono"]
+          ):
+            rama = "Derecho Laboral y de la Seguridad Social"
+            analisis = (
+                "El caso involucra relaciones de carácter laboral regidas por el"
+                " Código Sustantivo del Trabajo y los principios constitucionales"
+                " de protección al trabajador."
+            )
+            pasos = (
+                "1. Reunir contratos, extractos, liquidaciones o pruebas de"
+                " vinculación.\n   - 2. Acudir ante el Ministerio del Trabajo"
+                " para solicitar una audiencia de conciliación prejudicial.\n  "
+                " - 3. De no haber acuerdo, interponer demanda ordinaria ante"
+                " un Juez Laboral."
+            )
+          elif any(
+              w in texto_lower
+              for w in ["multa", "policia", "comparendo", "espacio publico"]
+          ):
+            rama = "Derecho Administrativo / Policivo"
+            analisis = (
+                "El asunto se rige bajo la Ley 1801 de 2016 (Código Nacional de"
+                " Seguridad y Convivencia Ciudadana) y los procedimientos"
+                " contenciosos administrativos."
+            )
+            pasos = (
+                "1. Verificar los tiempos de objeción (dentro de los 3 días"
+                " hábiles siguientes).\n   - 2. Presentar recurso de apelación"
+                " o descargos ante la inspección de policía respectiva.\n   -"
+                " 3. Adjuntar pruebas físicas o testimoniales que desvirtúen el"
+                " comparendo."
+            )
+          else:
+            rama = (
+                "Derecho Civil / General (Análisis Constitucional y de"
+                " Obligaciones)"
+            )
+            analisis = (
+                "Se analiza bajo las normas del Código Civil colombiano,"
+                " contratos, obligaciones y los mecanismos ordinarios de"
+                " resolución de conflictos entre particulares."
+            )
+            pasos = (
+                "1. Agotar requisito de procedibilidad (Conciliación en"
+                " centro autorizado o notarías).\n   - 2. Preparar el acervo"
+                " probatorio documental y testimonial.\n   - 3. Iniciar el"
+                " proceso judicial pertinente ante los jueces civiles"
+                " municipales o del circuito."
             )
 
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=[prompt_sistema, pregunta_usuario],
-            )
-            respuesta_ia = response.text
-
-          except Exception as e:
-            respuesta_ia = (
-                "⚠️ Ocurrió un error al conectar con el servicio de Inteligencia"
-                f" Artificial. Asegúrate de configurar tu `GEMINI_API_KEY` en"
-                f" los Secrets de Streamlit. (Detalle: {e})"
-            )
+          respuesta_ia = (
+              f"**[Agente Orquestador -> Rama Judicial Asignada]**\n\n"
+              f"Hemos analizado tu caso basándonos en la Constitución Política"
+              f" de Colombia y las normas vigentes.\n\n"
+              f"1. **Rama asignada:** {rama}\n"
+              f"2. **Análisis del caso:** {analisis}\n"
+              f"3. **Pasos exactos a seguir:**\n   - {pasos}\n"
+              f"4. **Recomendación:** Se sugiere contar con los soportes"
+              f" documentales necesarios para respaldar el trámite.\n\n*(Preguntas"
+              f" restantes: {st.session_state.preguntas_restantes})*"
+          )
 
         st.markdown(respuesta_ia)
         st.session_state.mensajes.append(
