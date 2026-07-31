@@ -93,55 +93,67 @@ else:
     with st.chat_message(mensaje["role"]):
       st.markdown(mensaje["content"])
 
+  # Opción para que el usuario suba archivos, fotos o evidencias sobre su caso
+  st.markdown("---")
+  archivo_adjunto = st.file_uploader(
+      "📁 Adjunta una imagen, foto o documento de tu caso (opcional):",
+      type=["png", "jpg", "jpeg", "pdf", "txt", "docx"],
+  )
+
   pregunta_usuario = st.chat_input(
-      "Expón tu caso o pide tu documento (ej. Redáctame una tutela, un derecho"
-      " de petición...)"
+      "Expón tu caso legal o formula tu pregunta aquí..."
   )
 
   if pregunta_usuario:
     if st.session_state.preguntas_restantes > 0:
-      st.session_state.mensajes.append(
-          {"role": "user", "content": pregunta_usuario}
-      )
+      # Construir el mensaje incluyendo si adjuntó archivo
+      texto_envio = pregunta_usuario
+      if archivo_adjunto is not None:
+        texto_envio += (
+            f"\n\n*(El usuario adjuntó un archivo de soporte:"
+            f" {archivo_adjunto.name})*"
+        )
+
+      st.session_state.mensajes.append({"role": "user", "content": texto_envio})
       with st.chat_message("user"):
-        st.markdown(pregunta_usuario)
+        st.markdown(texto_envio)
 
       st.session_state.preguntas_restantes -= 1
 
       with st.chat_message("assistant"):
         with st.spinner(
-            "El abogado experto está redactando el documento y estructurando"
-            " los pasos a seguir..."
+            "Analizando la Constitución y buscando la estrategia más favorable"
+            " para ti..."
         ):
           try:
             # Obtener la llave de Groq desde los Secrets de Streamlit
             groq_api_key = st.secrets["GROQ_API_KEY"]
             client = Groq(api_key=groq_api_key)
 
-            # Llamada al modelo con instrucciones para redactar documentos y dar instrucciones de trámite
+            # Llamada al modelo con instrucciones estrictas de defensa favorable y marco legal colombiano
             chat_completion = client.chat.completions.create(
                 messages=[
                     {
                         "role": "system",
                         "content": (
-                            "Eres un abogado senior experto en todas las ramas"
-                            " del derecho en Colombia. Cuando el usuario te"
-                            " pida redactar un documento (como Acción de Tutela,"
-                            " Derecho de Petición, Contrato, Demanda menor, etc.),"
-                            " debes escribir el contenido completo, formal y"
-                            " adaptado a la ley colombiana para que lo pueda"
-                            " copiar y usar. Además, en tu respuesta debes"
-                            " incluir obligatoriamente:\n1. **Rama del"
-                            " derecho** aplicable.\n2. **Minuta o borrador del"
-                            " documento** redactado formalmente.\n3. **Lugar o"
-                            " entidad específica** a la que debe dirigirse el"
-                            " usuario para presentarlo (ej. Juzgados, EPS,"
-                            " Ministerio de Trabajo, Notaría, etc.).\n4."
-                            " **Pasos exactos** que debe seguir para"
-                            " radicarlo."
+                            "Eres un abogado defensor y senior experto en todas"
+                            " las ramas del derecho en Colombia. Tu objetivo"
+                            " principal y absoluto es defender los intereses del"
+                            " usuario, buscando siempre la interpretación legal"
+                            " más favorable, ventajosa y protectora para él,"
+                            " amparándote estrictamente en la Constitución"
+                            " Política de Colombia, las leyes sustantivas y"
+                            " procedimentales vigentes, y la jurisprudencia de"
+                            " las altas cortes. Jamás perjudiques al usuario;"
+                            " encuentra vacíos, derechos fundamentales"
+                            " vulnerados o mecanismos de defensa a su favor."
+                            " Cuando te pida documentos, redacta la minuta"
+                            " completa y formal, e indícale con precisión la"
+                            " entidad y los pasos exactos que debe seguir para"
+                            " ganar su caso o proteger sus derechos."
                         ),
                     },
-                    {"role": "user", "content": pregunta_usuario},
+                    {"role": "user", "content": texto_envio},
                 ],
                 model="llama-3.1-8b-instant",
             )
