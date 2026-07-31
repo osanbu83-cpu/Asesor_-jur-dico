@@ -1,7 +1,7 @@
 import hashlib
 import os
-import random
 import streamlit as st
+from groq import Groq
 
 # Configuración de la página
 st.set_page_config(
@@ -80,7 +80,7 @@ if not st.session_state.pago_verificado:
         st.rerun()
 
 else:
-  # --- SECCIÓN DE CHAT Y ASESORÍA INTELIGENTE ---
+  # --- SECCIÓN DE CHAT Y ASESORÍA INTELIGENTE CON GROQ ---
   st.success(
       f"💬 Tienes **{st.session_state.preguntas_restantes} preguntas"
       " restantes** disponibles."
@@ -91,114 +91,54 @@ else:
     with st.chat_message(mensaje["role"]):
       st.markdown(mensaje["content"])
 
-  # Entrada del usuario
   pregunta_usuario = st.chat_input(
-      "Expón tu caso legal aquí (ej. Despido injustificado, tutela por salud..."
+      "Expón tu caso legal aquí (ej. Divorcio, despido, tutela...)"
   )
 
   if pregunta_usuario:
     if st.session_state.preguntas_restantes > 0:
-      # Agregar mensaje del usuario al historial
       st.session_state.mensajes.append(
           {"role": "user", "content": pregunta_usuario}
       )
       with st.chat_message("user"):
         st.markdown(pregunta_usuario)
 
-      # Disminuir contador
       st.session_state.preguntas_restantes -= 1
 
-      # Generar respuesta jurídica estructurada según el caso
       with st.chat_message("assistant"):
-        with st.spinner(
-            "El Agente Orquestador está analizando tu caso bajo el marco de la"
-            " Constitución de Colombia..."
-        ):
+        with st.spinner("Consultando con la Inteligencia Artificial..."):
+          try:
+            # Obtener la llave de Groq desde los Secrets de Streamlit
+            groq_api_key = st.secrets["GROQ_API_KEY"]
+            client = Groq(api_key=groq_api_key)
 
-          texto_lower = pregunta_usuario.lower()
-
-          # Seleccionar rama judicial basada en las palabras del usuario
-          if any(
-              w in texto_lower
-              for w in ["salud", "eps", "vida", "derecho", "tutela", "hospital"]
-          ):
-            rama = "Derecho Constitucional / Acción de Tutela"
-            analisis = (
-                "Se evidencia una presunta vulneración a derechos"
-                " fundamentales (como la salud, vida digna o petición),"
-                " consagrados en los artículos de la Constitución Política de"
-                " Colombia."
+            # Llamada al modelo ultrarrápido de Groq (Llama 3)
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Eres un abogado experto en la Constitución y las"
+                            " leyes de Colombia. Responde de forma coherente,"
+                            " directa y estructurada dando la rama del derecho,"
+                            " análisis y pasos a seguir."
+                        ),
+                    },
+                    {"role": "user", "content": pregunta_usuario},
+                ],
+                model="llama3-8b-8192",
             )
-            pasos = (
-                "1. Recopilar historias clínicas, fórmulas o peticiones"
-                " elevadas.\n   - 2. Redactar la Acción de Tutela dirigida a los"
-                " Jueces de la República.\n   - 3. Radicar el documento en el"
-                " juzgado de turno o mediante la plataforma virtual dispuesta"
-                " para tal fin."
+            respuesta_ia = chat_completion.choices[0].message.content
+            respuesta_ia += (
+                f"\n\n*(Preguntas restantes:"
+                f" {st.session_state.preguntas_restantes})*"
             )
-          elif any(
-              w in texto_lower
-              for w in ["trabajo", "despido", "salario", "empleo", "patrono"]
-          ):
-            rama = "Derecho Laboral y de la Seguridad Social"
-            analisis = (
-                "El caso involucra relaciones de carácter laboral regidas por el"
-                " Código Sustantivo del Trabajo y los principios constitucionales"
-                " de protección al trabajador."
+          except Exception as e:
+            respuesta_ia = (
+                f"⚠️ Error al conectar con Groq: {e}\n\nPor favor verifica que"
+                " hayas configurado `GROQ_API_KEY` en los Secrets de"
+                " Streamlit."
             )
-            pasos = (
-                "1. Reunir contratos, extractos, liquidaciones o pruebas de"
-                " vinculación.\n   - 2. Acudir ante el Ministerio del Trabajo"
-                " para solicitar una audiencia de conciliación prejudicial.\n  "
-                " - 3. De no haber acuerdo, interponer demanda ordinaria ante"
-                " un Juez Laboral."
-            )
-          elif any(
-              w in texto_lower
-              for w in ["multa", "policia", "comparendo", "espacio publico"]
-          ):
-            rama = "Derecho Administrativo / Policivo"
-            analisis = (
-                "El asunto se rige bajo la Ley 1801 de 2016 (Código Nacional de"
-                " Seguridad y Convivencia Ciudadana) y los procedimientos"
-                " contenciosos administrativos."
-            )
-            pasos = (
-                "1. Verificar los tiempos de objeción (dentro de los 3 días"
-                " hábiles siguientes).\n   - 2. Presentar recurso de apelación"
-                " o descargos ante la inspección de policía respectiva.\n   -"
-                " 3. Adjuntar pruebas físicas o testimoniales que desvirtúen el"
-                " comparendo."
-            )
-          else:
-            rama = (
-                "Derecho Civil / General (Análisis Constitucional y de"
-                " Obligaciones)"
-            )
-            analisis = (
-                "Se analiza bajo las normas del Código Civil colombiano,"
-                " contratos, obligaciones y los mecanismos ordinarios de"
-                " resolución de conflictos entre particulares."
-            )
-            pasos = (
-                "1. Agotar requisito de procedibilidad (Conciliación en"
-                " centro autorizado o notarías).\n   - 2. Preparar el acervo"
-                " probatorio documental y testimonial.\n   - 3. Iniciar el"
-                " proceso judicial pertinente ante los jueces civiles"
-                " municipales o del circuito."
-            )
-
-          respuesta_ia = (
-              f"**[Agente Orquestador -> Rama Judicial Asignada]**\n\n"
-              f"Hemos analizado tu caso basándonos en la Constitución Política"
-              f" de Colombia y las normas vigentes.\n\n"
-              f"1. **Rama asignada:** {rama}\n"
-              f"2. **Análisis del caso:** {analisis}\n"
-              f"3. **Pasos exactos a seguir:**\n   - {pasos}\n"
-              f"4. **Recomendación:** Se sugiere contar con los soportes"
-              f" documentales necesarios para respaldar el trámite.\n\n*(Preguntas"
-              f" restantes: {st.session_state.preguntas_restantes})*"
-          )
 
         st.markdown(respuesta_ia)
         st.session_state.mensajes.append(
