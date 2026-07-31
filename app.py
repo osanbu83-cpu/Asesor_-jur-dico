@@ -1,7 +1,7 @@
 import hashlib
 import os
-import streamlit as st
 from groq import Groq
+import streamlit as st
 
 # Configuración de la página
 st.set_page_config(
@@ -112,7 +112,7 @@ else:
             groq_api_key = st.secrets["GROQ_API_KEY"]
             client = Groq(api_key=groq_api_key)
 
-            # Llamada al modelo ultrarrápido de Groq (Llama 3)
+            # Llamada al modelo vigente y ultrarrápido de Groq
             chat_completion = client.chat.completions.create(
                 messages=[
                     {
@@ -126,7 +126,7 @@ else:
                     },
                     {"role": "user", "content": pregunta_usuario},
                 ],
-                model="llama3-8b-8192",
+                model="llama-3.1-8b-instant",
             )
             respuesta_ia = chat_completion.choices[0].message.content
             respuesta_ia += (
