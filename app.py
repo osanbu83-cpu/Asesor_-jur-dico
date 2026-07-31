@@ -41,8 +41,8 @@ st.title("⚖️ Asesoría Jurídica Inteligente (Constitución y Leyes de Colom
 if not st.session_state.pago_verificado:
   st.markdown("### 🔒 Desbloquea tu Asesoría Legal")
   st.info(
-      "Para habilitar tus **5 preguntas** con nuestros abogados expertos en"
-      " cualquier rama del derecho, debes realizar una consignación de"
+      "Para habilitar tus **5 preguntas** con nuestros abogados expertos y"
+      " redactores de documentos legales, debes realizar una consignación de"
       " **$5,000 COP** a la siguiente cuenta Nequi:"
   )
 
@@ -94,7 +94,8 @@ else:
       st.markdown(mensaje["content"])
 
   pregunta_usuario = st.chat_input(
-      "Expón tu caso legal aquí (ej. Divorcio, laboral, penal, contratos...)"
+      "Expón tu caso o pide tu documento (ej. Redáctame una tutela, un derecho"
+      " de petición...)"
   )
 
   if pregunta_usuario:
@@ -109,31 +110,35 @@ else:
 
       with st.chat_message("assistant"):
         with st.spinner(
-            "El abogado experto está analizando tu caso bajo el ordenamiento"
-            " jurídico colombiano..."
+            "El abogado experto está redactando el documento y estructurando"
+            " los pasos a seguir..."
         ):
           try:
             # Obtener la llave de Groq desde los Secrets de Streamlit
             groq_api_key = st.secrets["GROQ_API_KEY"]
             client = Groq(api_key=groq_api_key)
 
-            # Llamada al modelo con rol de abogado experto integral en Colombia
+            # Llamada al modelo con instrucciones para redactar documentos y dar instrucciones de trámite
             chat_completion = client.chat.completions.create(
                 messages=[
                     {
                         "role": "system",
                         "content": (
                             "Eres un abogado senior experto en todas las ramas"
-                            " del derecho en Colombia (Derecho Civil, Penal,"
-                            " Laboral, de Familia, Administrativo,"
-                            " Constitucional, Comercial, etc.). Analiza el caso"
-                            " del usuario con total rigor jurídico, citando las"
-                            " normas, códigos o artículos aplicables en"
-                            " Colombia. Responde de forma muy profesional,"
-                            " estructurada y clara, indicando: 1. Rama del"
-                            " derecho aplicable, 2. Análisis jurídico y marco"
-                            " legal, 3. Pasos exactos o estrategia a seguir, y"
-                            " 4. Recomendaciones prácticas."
+                            " del derecho en Colombia. Cuando el usuario te"
+                            " pida redactar un documento (como Acción de Tutela,"
+                            " Derecho de Petición, Contrato, Demanda menor, etc.),"
+                            " debes escribir el contenido completo, formal y"
+                            " adaptado a la ley colombiana para que lo pueda"
+                            " copiar y usar. Además, en tu respuesta debes"
+                            " incluir obligatoriamente:\n1. **Rama del"
+                            " derecho** aplicable.\n2. **Minuta o borrador del"
+                            " documento** redactado formalmente.\n3. **Lugar o"
+                            " entidad específica** a la que debe dirigirse el"
+                            " usuario para presentarlo (ej. Juzgados, EPS,"
+                            " Ministerio de Trabajo, Notaría, etc.).\n4."
+                            " **Pasos exactos** que debe seguir para"
+                            " radicarlo."
                         ),
                     },
                     {"role": "user", "content": pregunta_usuario},
