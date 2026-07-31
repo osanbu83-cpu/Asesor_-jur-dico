@@ -35,15 +35,15 @@ if "preguntas_restantes" not in st.session_state:
 if "mensajes" not in st.session_state:
   st.session_state.mensajes = []
 
-st.title("⚖️ Asesoría Jurídica Inteligente (Constitución de Colombia)")
+st.title("⚖️ Asesoría Jurídica Inteligente (Constitución y Leyes de Colombia)")
 
 # --- SECCIÓN DE PAGO / MONETIZACIÓN ---
 if not st.session_state.pago_verificado:
   st.markdown("### 🔒 Desbloquea tu Asesoría Legal")
   st.info(
-      "Para habilitar tus **5 preguntas** con nuestros agentes especializados"
-      " en ramas judiciales, debes realizar una consignación de **$5,000 COP**"
-      " a la siguiente cuenta Nequi:"
+      "Para habilitar tus **5 preguntas** con nuestros abogados expertos en"
+      " cualquier rama del derecho, debes realizar una consignación de"
+      " **$5,000 COP** a la siguiente cuenta Nequi:"
   )
 
   st.markdown(
@@ -74,6 +74,8 @@ if not st.session_state.pago_verificado:
       if st.button("Verificar Pago y Liberar Preguntas"):
         save_hash(file_hash)
         st.session_state.pago_verificado = True
+        st.session_state.preguntas_restantes = 5
+        st.session_state.mensajes = []
         st.success(
             "¡Pago verificado con éxito! Se han habilitado tus 5 preguntas."
         )
@@ -92,7 +94,7 @@ else:
       st.markdown(mensaje["content"])
 
   pregunta_usuario = st.chat_input(
-      "Expón tu caso legal aquí (ej. Divorcio, despido, tutela...)"
+      "Expón tu caso legal aquí (ej. Divorcio, laboral, penal, contratos...)"
   )
 
   if pregunta_usuario:
@@ -106,22 +108,32 @@ else:
       st.session_state.preguntas_restantes -= 1
 
       with st.chat_message("assistant"):
-        with st.spinner("Consultando con la Inteligencia Artificial..."):
+        with st.spinner(
+            "El abogado experto está analizando tu caso bajo el ordenamiento"
+            " jurídico colombiano..."
+        ):
           try:
             # Obtener la llave de Groq desde los Secrets de Streamlit
             groq_api_key = st.secrets["GROQ_API_KEY"]
             client = Groq(api_key=groq_api_key)
 
-            # Llamada al modelo vigente y ultrarrápido de Groq
+            # Llamada al modelo con rol de abogado experto integral en Colombia
             chat_completion = client.chat.completions.create(
                 messages=[
                     {
                         "role": "system",
                         "content": (
-                            "Eres un abogado experto en la Constitución y las"
-                            " leyes de Colombia. Responde de forma coherente,"
-                            " directa y estructurada dando la rama del derecho,"
-                            " análisis y pasos a seguir."
+                            "Eres un abogado senior experto en todas las ramas"
+                            " del derecho en Colombia (Derecho Civil, Penal,"
+                            " Laboral, de Familia, Administrativo,"
+                            " Constitucional, Comercial, etc.). Analiza el caso"
+                            " del usuario con total rigor jurídico, citando las"
+                            " normas, códigos o artículos aplicables en"
+                            " Colombia. Responde de forma muy profesional,"
+                            " estructurada y clara, indicando: 1. Rama del"
+                            " derecho aplicable, 2. Análisis jurídico y marco"
+                            " legal, 3. Pasos exactos o estrategia a seguir, y"
+                            " 4. Recomendaciones prácticas."
                         ),
                     },
                     {"role": "user", "content": pregunta_usuario},
@@ -145,9 +157,11 @@ else:
             {"role": "assistant", "content": respuesta_ia}
         )
 
+      # Si se agotan las preguntas, redirige al panel de pago
+      if st.session_state.preguntas_restantes <= 0:
+        st.warning(
+            "Has agotado tus 5 preguntas. Redirigiendo al panel de pagos..."
+        )
+        st.session_state.pago_verificado = False
+
       st.rerun()
-    else:
-      st.warning(
-          "Has agotado tus 5 preguntas. Por favor realiza un nuevo pago para"
-          " continuar con la asesoría."
-      )
